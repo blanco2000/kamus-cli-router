@@ -1,0 +1,69 @@
+name: Build APK
+
+# Berjalan otomatis setiap kali index.html diubah, atau manual dari tab Actions.
+on:
+  push:
+    branches: [main]
+    paths: ["index.html", "icon-*.png", ".github/workflows/build-apk.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil file dari repo
+        uses: actions/checkout@v4
+
+      - name: Siapkan Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Siapkan Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Siapkan Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Salin file app ke folder www
+        run: |
+          mkdir -p www
+          cp index.html manifest.webmanifest icon-*.png www/
+
+      - name: Buat project Android (Capacitor)
+        run: |
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npx cap init "Kamus CLI" io.github.blanco2000.kamuscli --web-dir www
+          npx cap add android
+          npx cap sync android
+
+      - name: Pasang ikon app
+        run: |
+          RES=android/app/src/main/res
+          rm -rf $RES/mipmap-anydpi-v26
+          for d in $RES/mipmap-*; do
+            cp icon-192.png $d/ic_launcher.png
+            cp icon-192.png $d/ic_launcher_round.png
+          done
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk ../kamus-cli-router.apk
+
+      - name: Terbitkan di Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Kamus CLI Router v${{ github.run_number }}
+          body: Download file kamus-cli-router.apk di bawah, lalu install di HP Android.
+          files: kamus-cli-router.apk
