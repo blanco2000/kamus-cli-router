@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b4530a">
+<meta name="description" content="Library command CLI umum per merek dan OS router/switch.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Kamus CLI Router</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: console-desk — vendor rail, OS selector, then a scannable command ledger grouped by category */
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#18212b; --muted:#5b6876; --line:#d5dbe2;
+  --accent:#b4530a; --accent-soft:#fbead9; --code-bg:#f3f5f8; --ph:#0f6b74; --ok:#1d7a46;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171d; --panel:#1a2129; --ink:#e4e9ee; --muted:#93a0ad; --line:#2c3640;
+  --accent:#f0954a; --accent-soft:#3a2716; --code-bg:#0f1419; --ph:#5cc6cf; --ok:#5fcf8e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171d; --panel:#1a2129; --ink:#e4e9ee; --muted:#93a0ad; --line:#2c3640;
+  --accent:#f0954a; --accent-soft:#3a2716; --code-bg:#0f1419; --ph:#5cc6cf; --ok:#5fcf8e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,5vw,40px);letter-spacing:-.01em;margin:0;line-height:1.1;text-wrap:balance}
+header h1 span{color:var(--accent)}
+header p{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.prompt{font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:6px}
+.prompt b{color:var(--accent);font-weight:600}
+.step{display:flex;flex-direction:column;gap:10px}
+.step-label{font-family:var(--display);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:9px 14px;border-radius:6px;display:flex;align-items:baseline;gap:8px;transition:border-color .15s,background .15s}
+.chip:hover{border-color:var(--accent)}
+.chip:focus-visible,.btn:focus-visible,input:focus-visible,.tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chip small{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip[aria-pressed="true"] small{color:rgba(255,255,255,.8)}
+.os-chip{font-family:var(--mono);font-size:14px;font-weight:500}
+.os-note{font-size:13px;color:var(--muted);margin:0;max-width:70ch}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding-block:10px;z-index:5;border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.search{flex:1 1 260px;min-width:0;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:0 12px}
+.search span{font-family:var(--mono);color:var(--accent);font-weight:600}
+.search input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;padding:10px 0}
+.search input:focus-visible{outline:none}
+.search:focus-within{border-color:var(--accent)}
+.tabs{display:flex;flex-wrap:wrap;gap:4px}
+.tab{font:inherit;font-size:13px;cursor:pointer;border:0;background:transparent;color:var(--muted);padding:6px 10px;border-radius:4px}
+.tab[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.ctx{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.ctx b{color:var(--ink)}
+.group h2{font-family:var(--display);font-size:20px;font-weight:600;margin:0 0 8px;display:flex;align-items:baseline;gap:10px}
+.group h2 small{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400}
+.ledger{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.row{display:grid;grid-template-columns:minmax(150px,220px) 1fr auto;gap:6px 16px;padding:12px 16px;border-top:1px solid var(--line);align-items:start}
+.row:first-child{border-top:0}
+.task{font-weight:500;padding-top:6px}
+.cmds{display:flex;flex-direction:column;gap:6px;min-width:0}
+.cmd{display:flex;align-items:center;gap:8px;min-width:0}
+code{font-family:var(--mono);font-size:13.5px;background:var(--code-bg);border:1px solid var(--line);border-radius:4px;padding:5px 9px;overflow-x:auto;white-space:pre;flex:1;min-width:0;display:block}
+code .ph{color:var(--ph);font-style:italic}
+.note{font-size:12.5px;color:var(--muted);margin:2px 0 0}
+.btn{font:inherit;font-size:12px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:5px 9px;border-radius:4px;white-space:nowrap}
+.btn:hover{color:var(--ink);border-color:var(--muted)}
+.btn.done{color:var(--ok);border-color:var(--ok)}
+.cmp-btn{margin-top:4px}
+.compare{grid-column:1/-1;background:var(--code-bg);border:1px dashed var(--line);border-radius:6px;padding:10px 12px;overflow-x:auto}
+.compare table{border-collapse:collapse;width:100%;font-size:13px}
+.compare td{padding:5px 8px;border-top:1px solid var(--line);vertical-align:top}
+.compare tr:first-child td{border-top:0}
+.compare td:first-child{white-space:nowrap;color:var(--muted);font-family:var(--mono);font-size:12px}
+.compare td.cur{color:var(--accent);font-weight:600}
+.compare .cc{font-family:var(--mono);white-space:pre}
+.na{color:var(--muted);font-style:italic}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+footer{font-size:12.5px;color:var(--muted);max-width:75ch}
+@media (max-width:680px){
+  .row{grid-template-columns:1fr auto}
+  .task{grid-column:1/2;padding-top:0}
+  .row>.cmp-wrap{grid-column:2/3;grid-row:1}
+  .cmds{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="prompt">router# <b>show</b> command-library</div>
+    <h1>Kamus CLI <span>Router</span></h1>
+    <p>Pilih merek, lalu sistem operasinya. Command yang umum dipakai sehari-hari langsung muncul, dikelompokkan per kategori. Klik <em>Bandingkan</em> untuk melihat padanan command di semua OS.</p>
+  </header>
+
+  <section class="step">
+    <div class="step-label">1 · Merek</div>
+    <div class="chips" id="vendors"></div>
+  </section>
+
+  <section class="step">
+    <div class="step-label">2 · Sistem operasi</div>
+    <div class="chips" id="oses"></div>
+    <p class="os-note" id="osnote"></p>
+  </section>
+
+  <div class="toolbar">
+    <label class="search" for="q"><span>&gt;</span><input id="q" type="search" placeholder="Cari: interface, bgp, arp, save…" autocomplete="off"></label>
+    <div class="tabs" id="cats"></div>
+  </div>
+
+  <div class="ctx" id="ctx"></div>
+  <main id="list" style="display:flex;flex-direction:column;gap:22px"></main>
+
+  <footer>Teks berwarna miring seperti <code style="display:inline;padding:1px 5px"><span class="ph">GigabitEthernet0/1</span></code> adalah contoh nilai, ganti sesuai perangkat Anda. Sintaks bisa sedikit berbeda antar versi firmware; cek dokumentasi vendor untuk versi yang Anda pakai.</footer>
+</div>
+
+<script>
+const CATS=[
+  {id:"int",name:"Interface"},
+  {id:"rt",name:"Routing"},
+  {id:"l2",name:"Layer 2 & Discovery"},
+  {id:"sys",name:"Sistem"},
+  {id:"cfg",name:"Konfigurasi"},
+  {id:"ts",name:"Troubleshoot"}
+];
+const TASKS=[
+  ["int_all","int","Detail semua interface"],
+  ["int_brief","int","Ringkasan status & IP"],
+  ["int_one","int","Detail satu interface"],
+  ["int_err","int","Error & counter"],
+  ["int_desc","int","Deskripsi interface"],
+  ["int_sfp","int","Status optik / SFP"],
+  ["rt_table","rt","Tabel routing"],
+  ["rt_bgp","rt","Ringkasan neighbor BGP"],
+  ["rt_ospf","rt","Neighbor OSPF"],
+  ["l2_arp","l2","Tabel ARP"],
+  ["l2_mac","l2","Tabel MAC address"],
+  ["l2_vlan","l2","Daftar VLAN"],
+  ["l2_nei","l2","Neighbor CDP / LLDP"],
+  ["l2_ep","l2","Cari endpoint"],
+  ["sys_ver","sys","Versi OS & hardware"],
+  ["sys_nodes","sys","Daftar node fabric"],
+  ["sys_cpu","sys","Penggunaan CPU"],
+  ["sys_mem","sys","Penggunaan memori"],
+  ["sys_log","sys","Log sistem"],
+  ["sys_ntp","sys","Status NTP"],
+  ["sys_users","sys","User yang sedang login"],
+  ["cfg_run","cfg","Lihat konfigurasi aktif"],
+  ["cfg_save","cfg","Simpan konfigurasi"],
+  ["ts_ping","ts","Ping"],
+  ["ts_trace","ts","Traceroute"]
+].map(([id,cat,label])=>({id,cat,label}));
+
+/* value: string | array of strings; notes keyed by task id */
+const VENDORS=[
+ {id:"cisco",name:"Cisco",os:[
+  {id:"ios",name:"IOS",note:"Router/switch klasik (ISR G2, Catalyst lama).",c:{
+   int_all:"show interfaces",int_brief:"show ip interface brief",int_one:"show interfaces <GigabitEthernet0/1>",
+   int_err:"show interfaces counters errors",int_desc:"show interfaces description",int_sfp:"show interfaces transceiver",
+   rt_table:"show ip route",rt_bgp:"show ip bgp summary",rt_ospf:"show ip ospf neighbor",
+   l2_arp:"show ip arp",l2_mac:"show mac address-table",l2_vlan:"show vlan brief",l2_nei:["show cdp neighbors detail","show lldp neighbors"],
+   sys_ver:"show version",sys_cpu:"show processes cpu sorted",sys_mem:"show memory statistics",sys_log:"show logging",
+   sys_ntp:"show ntp associations",sys_users:"show users",cfg_run:"show running-config",
+   cfg_save:["copy running-config startup-config","write memory"],ts_ping:"ping <8.8.8.8>",ts_trace:"traceroute <8.8.8.8>"},
+   n:{int_err:"Di router ISR yang tidak punya switchport, cek baris error pada output show interfaces."}},
+  {id:"ios-xe",name:"IOS XE",note:"Catalyst 9000, ISR 4000, ASR 1000, CSR/C8000v.",c:{
+   int_all:"show interfaces",int_brief:"show ip interface brief",int_one:"show interfaces <GigabitEthernet1/0/1>",
+   int_err:"show interfaces counters errors",int_desc:"show interfaces description",int_sfp:"show interfaces transceiver",
+   rt_table:"show ip route",rt_bgp:["show ip bgp summary","show bgp ipv4 unicast summary"],rt_ospf:"show ip ospf neighbor",
+   l2_arp:"show ip arp",l2_mac:"show mac address-table",l2_vlan:"show vlan brief",l2_nei:["show cdp neighbors detail","show lldp neighbors"],
+   sys_ver:"show version",sys_cpu:"show processes cpu sorted",sys_mem:["show processes memory sorted","show platform resources"],sys_log:"show logging",
+   sys_ntp:"show ntp associations",sys_users:"show users",cfg_run:"show running-config",
+   cfg_save:["copy running-config startup-config","write memory"],ts_ping:"ping <8.8.8.8>",ts_trace:"traceroute <8.8.8.8>"}},
+  {id:"ios-xr",name:"IOS XR",note:"ASR 9000, NCS, 8000. Perubahan config baru aktif setelah commit.",c:{
+   int_all:"show interfaces",int_brief:["show interfaces brief","show ipv4 interface brief"],int_one:"show interfaces <GigabitEthernet0/0/0/0>",
+   int_err:"show controllers <GigabitEthernet0/0/0/0> stats",int_desc:"show interfaces description",int_sfp:"show controllers optics <0/0/0/0>",
+   rt_table:"show route",rt_bgp:"show bgp summary",rt_ospf:"show ospf neighbor",
+   l2_arp:"show arp",l2_mac:"show l2vpn mac-learning mac all location <0/0/CPU0>",l2_nei:["show cdp neighbors","show lldp neighbors"],
+   sys_ver:"show version",sys_cpu:"show processes cpu",sys_mem:"show memory summary",sys_log:"show logging",
+   sys_ntp:"show ntp associations",sys_users:"show users",cfg_run:"show running-config",
+   cfg_save:"commit",ts_ping:"ping <8.8.8.8>",ts_trace:"traceroute <8.8.8.8>"},
+   n:{cfg_save:"Tidak ada write memory. Config tersimpan otomatis saat commit dari mode konfigurasi.",l2_mac:"MAC table hanya relevan bila ada bridge-domain L2VPN."}},
+  {id:"nx-os",name:"NX-OS",note:"Nexus 3000/5000/7000/9000 (mode standalone).",c:{
+   int_all:"show interface",int_brief:["show interface brief","show ip interface brief"],int_one:"show interface <ethernet1/1>",
+   int_err:"show interface counters errors",int_desc:"show interface description",int_sfp:"show interface transceiver details",
+   rt_table:"show ip route",rt_bgp:["show bgp ipv4 unicast summary","show ip bgp summary"],rt_ospf:"show ip ospf neighbors",
+   l2_arp:"show ip arp",l2_mac:"show mac address-table",l2_vlan:"show vlan brief",l2_nei:["show cdp neighbors","show lldp neighbors"],
+   sys_ver:"show version",sys_cpu:["show system resources","show processes cpu sort"],sys_mem:"show system resources",sys_log:"show logging logfile",
+   sys_ntp:"show ntp peer-status",sys_users:"show users",cfg_run:"show running-config",
+   cfg_save:"copy running-config startup-config",ts_ping:"ping <8.8.8.8> vrf <management>",ts_trace:"traceroute <8.8.8.8> vrf <management>"},
+   n:{ts_ping:"Tambahkan vrf bila tes dari interface mgmt0; hapus bila dari VRF default."}},
+  {id:"aci",name:"ACI",note:"Nexus 9000 mode ACI. Command dijalankan di leaf/spine (SSH ke switch) kecuali yang ditandai APIC.",c:{
+   int_all:"show interface",int_brief:"show interface brief",int_one:"show interface <ethernet1/1>",
+   int_err:"show interface <ethernet1/1> counters errors",int_desc:"show interface description",int_sfp:"show interface <ethernet1/1> transceiver details",
+   rt_table:"show ip route vrf <tenant:vrf>",rt_bgp:"show bgp sessions vrf <overlay-1>",rt_ospf:"show ip ospf neighbors vrf all",
+   l2_arp:"show ip arp vrf all",l2_mac:"show mac address-table",l2_vlan:"show vlan extended",l2_nei:"show lldp neighbors",
+   l2_ep:["show endpoint ip <10.1.1.10>","show endpoints   (APIC)"],
+   sys_ver:"show version",sys_nodes:"acidiag fnvread   (APIC)",sys_cpu:"show system resources",sys_mem:"show system resources",
+   sys_log:"show faults   (APIC)",sys_ntp:"show ntp peer-status",sys_users:"show users",
+   cfg_run:"show running-config   (APIC)",ts_ping:"iping -V <tenant:vrf> <10.1.1.1>",ts_trace:"itraceroute -V <tenant:vrf> <10.1.1.1>"},
+   n:{cfg_save:"",l2_vlan:"Menampilkan pemetaan VLAN akses ke encap/BD.",ts_ping:"Di leaf ACI gunakan iping (bukan ping) agar bisa memilih VRF tenant."}}
+ ]},
+ {id:"juniper",name:"Juniper",os:[
+  {id:"junos",name:"Junos OS",note:"MX, SRX, EX, QFX. Perubahan config aktif setelah commit.",c:{
+   int_all:"show interfaces",int_brief:"show interfaces terse",int_one:"show interfaces <ge-0/0/0>",
+   int_err:"show interfaces <ge-0/0/0> extensive | match error",int_desc:"show interfaces descriptions",int_sfp:"show interfaces diagnostics optics <ge-0/0/0>",
+   rt_table:"show route",rt_bgp:"show bgp summary",rt_ospf:"show ospf neighbor",
+   l2_arp:"show arp no-resolve",l2_mac:"show ethernet-switching table",l2_vlan:"show vlans",l2_nei:"show lldp neighbors",
+   sys_ver:["show version","show chassis hardware"],sys_cpu:"show chassis routing-engine",sys_mem:"show system memory",sys_log:"show log messages",
+   sys_ntp:"show ntp associations",sys_users:"show system users",cfg_run:["show configuration","show configuration | display set"],
+   cfg_save:"commit",ts_ping:"ping <8.8.8.8> count 5",ts_trace:"traceroute <8.8.8.8>"},
+   n:{cfg_save:"Jalankan dari mode configure. Pakai commit check dulu untuk validasi.",l2_mac:"Di MX gunakan show bridge mac-table."}}
+ ]},
+ {id:"huawei",name:"Huawei",os:[
+  {id:"vrp",name:"VRP",note:"Router AR/NE dan switch S/CE series.",c:{
+   int_all:"display interface",int_brief:["display interface brief","display ip interface brief"],int_one:"display interface <GigabitEthernet0/0/1>",
+   int_err:"display interface <GigabitEthernet0/0/1> | include CRC|error",int_desc:"display interface description",int_sfp:"display transceiver interface <GigabitEthernet0/0/1> verbose",
+   rt_table:"display ip routing-table",rt_bgp:"display bgp peer",rt_ospf:"display ospf peer brief",
+   l2_arp:"display arp",l2_mac:"display mac-address",l2_vlan:"display vlan",l2_nei:"display lldp neighbor brief",
+   sys_ver:"display version",sys_cpu:"display cpu-usage",sys_mem:"display memory-usage",sys_log:"display logbuffer",
+   sys_ntp:"display ntp-service status",sys_users:"display users",cfg_run:"display current-configuration",
+   cfg_save:"save",ts_ping:"ping <8.8.8.8>",ts_trace:"tracert <8.8.8.8>"}}
+ ]},
+ {id:"mikrotik",name:"MikroTik",os:[
+  {id:"routeros",name:"RouterOS v7",note:"Router hAP, CCR, RB dan CHR. Config tersimpan otomatis.",c:{
+   int_all:"/interface print detail",int_brief:["/interface print","/ip address print"],int_one:"/interface ethernet monitor <ether1>",
+   int_err:"/interface ethernet print stats",int_sfp:"/interface ethernet monitor <sfp-sfpplus1>",
+   rt_table:"/ip route print",rt_bgp:"/routing bgp session print",rt_ospf:"/routing ospf neighbor print",
+   l2_arp:"/ip arp print",l2_mac:"/interface bridge host print",l2_vlan:["/interface vlan print","/interface bridge vlan print"],l2_nei:"/ip neighbor print",
+   sys_ver:["/system resource print","/system routerboard print"],sys_cpu:["/system resource print","/tool profile"],sys_mem:"/system resource print",sys_log:"/log print",
+   sys_ntp:"/system ntp client print",sys_users:"/user active print",cfg_run:"/export",
+   ts_ping:"/ping <8.8.8.8> count=5",ts_trace:"/tool traceroute <8.8.8.8>"},
+   n:{rt_bgp:"Di RouterOS v6 gunakan /routing bgp peer print.",int_desc:""}}
+ ]},
+ {id:"arista",name:"Arista",os:[
+  {id:"eos",name:"EOS",note:"Switch 7000 series dan vEOS/cEOS.",c:{
+   int_all:"show interfaces",int_brief:["show interfaces status","show ip interface brief"],int_one:"show interfaces <Ethernet1>",
+   int_err:"show interfaces counters errors",int_desc:"show interfaces description",int_sfp:"show interfaces transceiver",
+   rt_table:"show ip route",rt_bgp:"show ip bgp summary",rt_ospf:"show ip ospf neighbor",
+   l2_arp:"show ip arp",l2_mac:"show mac address-table",l2_vlan:"show vlan",l2_nei:"show lldp neighbors",
+   sys_ver:"show version",sys_cpu:"show processes top once",sys_mem:"show version | include memory",sys_log:"show logging",
+   sys_ntp:"show ntp associations",sys_users:"show users",cfg_run:"show running-config",
+   cfg_save:"write memory",ts_ping:"ping <8.8.8.8>",ts_trace:"traceroute <8.8.8.8>"}}
+ ]},
+ {id:"fortinet",name:"Fortinet",os:[
+  {id:"fortios",name:"FortiOS",note:"FortiGate. Config tersimpan otomatis setelah end.",c:{
+   int_all:"get system interface",int_brief:"get system interface physical",int_one:"diagnose hardware deviceinfo nic <port1>",
+   int_err:"diagnose hardware deviceinfo nic <port1>",
+   rt_table:"get router info routing-table all",rt_bgp:"get router info bgp summary",rt_ospf:"get router info ospf neighbor",
+   l2_arp:"get system arp",
+   sys_ver:"get system status",sys_cpu:"get system performance status",sys_mem:"get system performance status",sys_log:["execute log filter category event","execute log display"],
+   sys_ntp:"diagnose sys ntp status",sys_users:"get system admin list",cfg_run:["show","show full-configuration"],
+   ts_ping:"execute ping <8.8.8.8>",ts_trace:"execute traceroute <8.8.8.8>"},
+   n:{cfg_run:"show hanya menampilkan nilai yang berbeda dari default.",int_err:"Lihat bagian Rx/Tx error dan drop di output."}}
+ ]},
+ {id:"nokia",name:"Nokia",os:[
+  {id:"sros",name:"SR OS (classic)",note:"7750 SR, 7250 IXR. Contoh di sini memakai classic CLI.",c:{
+   int_all:"show port",int_brief:"show router interface",int_one:"show port <1/1/1> detail",
+   int_err:"show port <1/1/1> statistics",int_desc:"show port description",int_sfp:"show port <1/1/1> optical",
+   rt_table:"show router route-table",rt_bgp:"show router bgp summary",rt_ospf:"show router ospf neighbor",
+   l2_arp:"show router arp",l2_mac:"show service fdb-mac",l2_nei:"show system lldp neighbor",
+   sys_ver:["show version","show chassis"],sys_cpu:"show system cpu",sys_mem:"show system memory-pools",sys_log:"show log log-id 99",
+   sys_ntp:"show system ntp",sys_users:"show users",cfg_run:"admin display-config",
+   cfg_save:"admin save",ts_ping:"ping <8.8.8.8>",ts_trace:"traceroute <8.8.8.8>"}}
+ ]}
+];
+
+const $=s=>document.querySelector(s);
+const st={v:"cisco",o:"ios",cat:"all",q:"",open:new Set()};
+const ALLOS=VENDORS.flatMap(v=>v.os.map(o=>({...o,vendor:v})));
+/* ---- Routing tambahan: BGP advertise/receive, VRF ---- */
+CATS.splice(2,0,{id:"bgp",name:"BGP"},{id:"vrf",name:"VRF"});
+TASKS.find(t=>t.id==="rt_bgp").cat="bgp";
+[["rt_static","rt","Route statis"],["rt_lookup","rt","Cek rute ke satu tujuan"],["rt_summary","rt","Ringkasan jumlah route"],
+ ["rt_ospf_int","rt","Interface OSPF"],["rt_ospf_db","rt","Database OSPF (LSDB)"],
+ ["bgp_nei","bgp","Detail satu neighbor BGP"],["bgp_adv","bgp","Route yang di-advertise ke neighbor"],
+ ["bgp_rcv","bgp","Route yang diterima dari neighbor"],["bgp_rcv_raw","bgp","Route diterima sebelum policy"],
+ ["bgp_prefix","bgp","Cek satu prefix di tabel BGP"],["bgp_clear","bgp","Soft reset sesi BGP"],
+ ["vrf_list","vrf","Daftar VRF & interface anggotanya"],["vrf_table","vrf","Tabel routing per VRF"],
+ ["vrf_bgp","vrf","Ringkasan BGP per VRF"],["vrf_adv","vrf","Route di-advertise ke neighbor (VRF)"],
+ ["vrf_rcv","vrf","Route diterima dari neighbor (VRF)"],["vrf_ping","vrf","Ping dari dalam VRF"]
+].forEach(([id,cat,label])=>TASKS.push({id,cat,label}));
+
+const N="<10.0.0.2>", V="<CUST-A>", P="<192.168.10.0/24>";
+const IOSRT={
+ rt_static:"show ip route static",rt_lookup:"show ip route <8.8.8.8>",rt_summary:"show ip route summary",
+ rt_ospf_int:"show ip ospf interface brief",rt_ospf_db:"show ip ospf database",
+ bgp_nei:`show ip bgp neighbors ${N}`,bgp_adv:`show ip bgp neighbors ${N} advertised-routes`,
+ bgp_rcv:`show ip bgp neighbors ${N} routes`,bgp_rcv_raw:`show ip bgp neighbors ${N} received-routes`,
+ bgp_prefix:`show ip bgp ${P}`,bgp_clear:`clear ip bgp ${N} soft`,
+ vrf_list:["show vrf","show ip vrf interfaces"],vrf_table:`show ip route vrf ${V}`,
+ vrf_bgp:`show ip bgp vpnv4 vrf ${V} summary`,
+ vrf_adv:`show ip bgp vpnv4 vrf ${V} neighbors ${N} advertised-routes`,
+ vrf_rcv:`show ip bgp vpnv4 vrf ${V} neighbors ${N} routes`,vrf_ping:`ping vrf ${V} <10.1.1.1>`};
+const RAWNOTE="Butuh neighbor <ip> soft-reconfiguration inbound di config BGP.".replace("<ip>","x.x.x.x");
+const RT={
+ "cisco-ios":{c:IOSRT,n:{bgp_rcv_raw:RAWNOTE}},
+ "cisco-ios-xe":{c:{...IOSRT,vrf_list:["show vrf","show vrf detail"],
+   vrf_bgp:`show bgp vpnv4 unicast vrf ${V} summary`,
+   vrf_adv:`show bgp vpnv4 unicast vrf ${V} neighbors ${N} advertised-routes`,
+   vrf_rcv:`show bgp vpnv4 unicast vrf ${V} neighbors ${N} routes`},n:{bgp_rcv_raw:RAWNOTE}},
+ "cisco-ios-xr":{c:{
+   rt_static:"show route static",rt_lookup:"show route <8.8.8.8>",rt_summary:"show route summary",
+   rt_ospf_int:"show ospf interface brief",rt_ospf_db:"show ospf database",
+   bgp_nei:`show bgp neighbor ${N}`,bgp_adv:`show bgp neighbor ${N} advertised-routes`,
+   bgp_rcv:`show bgp neighbor ${N} routes`,bgp_rcv_raw:`show bgp neighbor ${N} received routes`,
+   bgp_prefix:`show bgp ${P}`,bgp_clear:`clear bgp ipv4 unicast ${N} soft`,
+   vrf_list:["show vrf all","show vrf all detail"],vrf_table:`show route vrf ${V}`,
+   vrf_bgp:`show bgp vrf ${V} summary`,vrf_adv:`show bgp vrf ${V} neighbor ${N} advertised-routes`,
+   vrf_rcv:`show bgp vrf ${V} neighbor ${N} routes`,vrf_ping:`ping vrf ${V} <10.1.1.1>`},
+  n:{bgp_adv:"eBGP di IOS XR tidak mengirim/menerima route sebelum ada route-policy in dan out.",
+     bgp_rcv_raw:"Butuh soft-reconfiguration inbound always di address-family neighbor."}},
+ "cisco-nx-os":{c:{
+   rt_static:"show ip route static",rt_lookup:"show ip route <8.8.8.8>",rt_summary:"show ip route summary",
+   rt_ospf_int:"show ip ospf interface brief",rt_ospf_db:"show ip ospf database",
+   bgp_nei:`show bgp ipv4 unicast neighbors ${N}`,bgp_adv:`show bgp ipv4 unicast neighbors ${N} advertised-routes`,
+   bgp_rcv:`show bgp ipv4 unicast neighbors ${N} routes`,bgp_rcv_raw:`show bgp ipv4 unicast neighbors ${N} received-routes`,
+   bgp_prefix:`show bgp ipv4 unicast ${P}`,bgp_clear:`clear bgp ipv4 unicast ${N} soft`,
+   vrf_list:["show vrf","show vrf interface"],vrf_table:`show ip route vrf ${V}`,
+   vrf_bgp:`show bgp ipv4 unicast summary vrf ${V}`,
+   vrf_adv:`show bgp ipv4 unicast neighbors ${N} advertised-routes vrf ${V}`,
+   vrf_rcv:`show bgp ipv4 unicast neighbors ${N} routes vrf ${V}`,vrf_ping:`ping <10.1.1.1> vrf ${V}`},
+  n:{bgp_rcv_raw:"Butuh soft-reconfiguration inbound always di address-family neighbor."}},
+ "cisco-aci":{c:(()=>{const T="<tenant:vrf>";return{
+   rt_static:`show ip route static vrf ${T}`,rt_lookup:`show ip route <8.8.8.8> vrf ${T}`,rt_summary:`show ip route summary vrf ${T}`,
+   rt_ospf_int:`show ip ospf interface brief vrf ${T}`,rt_ospf_db:`show ip ospf database vrf ${T}`,
+   bgp_nei:`show bgp ipv4 unicast neighbors ${N} vrf ${T}`,
+   bgp_adv:`show bgp ipv4 unicast neighbors ${N} advertised-routes vrf ${T}`,
+   bgp_rcv:`show bgp ipv4 unicast neighbors ${N} routes vrf ${T}`,
+   bgp_prefix:`show bgp ipv4 unicast ${P} vrf ${T}`,
+   vrf_list:"show vrf",vrf_table:`show ip route vrf ${T}`,vrf_bgp:`show bgp ipv4 unicast summary vrf ${T}`,
+   vrf_adv:`show bgp ipv4 unicast neighbors ${N} advertised-routes vrf ${T}`,
+   vrf_rcv:`show bgp ipv4 unicast neighbors ${N} routes vrf ${T}`,vrf_ping:`iping -V ${T} <10.1.1.1>`}})(),
+  n:{bgp_adv:"Jalankan di border leaf tempat L3Out terpasang. Prefix yang di-advertise diatur lewat External EPG / subnet L3Out."}},
+ "juniper-junos":{c:{
+   rt_static:"show route protocol static",rt_lookup:"show route <8.8.8.8>",rt_summary:"show route summary",
+   rt_ospf_int:"show ospf interface",rt_ospf_db:"show ospf database",
+   bgp_nei:`show bgp neighbor ${N}`,bgp_adv:`show route advertising-protocol bgp ${N}`,
+   bgp_rcv:`show route receive-protocol bgp ${N}`,bgp_rcv_raw:`show route receive-protocol bgp ${N} hidden`,
+   bgp_prefix:`show route ${P} protocol bgp detail`,bgp_clear:`clear bgp neighbor ${N} soft`,
+   vrf_list:["show route instance","show route instance detail"],vrf_table:`show route table ${V}.inet.0`,
+   vrf_bgp:`show bgp summary instance ${V}`,
+   vrf_adv:`show route advertising-protocol bgp ${N} table ${V}.inet.0`,
+   vrf_rcv:`show route receive-protocol bgp ${N} table ${V}.inet.0`,vrf_ping:`ping <10.1.1.1> routing-instance ${V}`},
+  n:{bgp_rcv_raw:"Opsi hidden menampilkan route yang ditolak import policy atau tidak valid.",
+     vrf_list:"Di Junos, VRF disebut routing-instance (instance-type vrf)."}},
+ "huawei-vrp":{c:{
+   rt_static:"display ip routing-table protocol static",rt_lookup:"display ip routing-table <8.8.8.8>",
+   rt_summary:"display ip routing-table statistics",rt_ospf_int:"display ospf interface",rt_ospf_db:"display ospf lsdb",
+   bgp_nei:`display bgp peer ${N} verbose`,bgp_adv:`display bgp routing-table peer ${N} advertised-routes`,
+   bgp_rcv:`display bgp routing-table peer ${N} received-routes`,
+   bgp_prefix:"display bgp routing-table <192.168.10.0> <24>",
+   bgp_clear:[`refresh bgp ${N} import`,`refresh bgp ${N} export`],
+   vrf_list:["display ip vpn-instance","display ip vpn-instance verbose"],
+   vrf_table:`display ip routing-table vpn-instance ${V}`,vrf_bgp:`display bgp vpnv4 vpn-instance ${V} peer`,
+   vrf_adv:`display bgp vpnv4 vpn-instance ${V} routing-table peer ${N} advertised-routes`,
+   vrf_rcv:`display bgp vpnv4 vpn-instance ${V} routing-table peer ${N} received-routes`,
+   vrf_ping:`ping -vpn-instance ${V} <10.1.1.1>`},
+  n:{bgp_rcv:"Untuk menyimpan route sebelum policy, aktifkan peer x.x.x.x keep-all-routes.",
+     vrf_list:"Di Huawei, VRF disebut vpn-instance."}},
+ "mikrotik-routeros":{c:{
+   rt_static:"/ip route print where static",rt_lookup:"/ip route check <8.8.8.8>",rt_summary:"/ip route print count-only",
+   rt_ospf_int:"/routing ospf interface print",rt_ospf_db:"/routing ospf lsa print",
+   bgp_nei:`/routing bgp session print detail where remote.address=10.0.0.2`,
+   bgp_adv:"/routing bgp advertisements print peer=<nama-session>",
+   bgp_rcv:["/ip route print where bgp","/routing route print detail where bgp"],
+   bgp_prefix:`/routing route print detail where dst-address=${P}`,
+   bgp_clear:"/routing bgp session refresh [find]",
+   vrf_list:"/ip vrf print",vrf_table:`/ip route print where routing-table=${V}`,
+   vrf_bgp:`/routing bgp connection print where vrf=${V}`,vrf_ping:`/ping <10.1.1.1> vrf=${V}`},
+  n:{bgp_adv:"Nama session terlihat di /routing bgp session print.",
+     bgp_rcv:"Output detail menunjukkan session BGP asal tiap route."}},
+ "arista-eos":{c:{...IOSRT,
+   vrf_list:"show vrf",vrf_bgp:`show ip bgp summary vrf ${V}`,
+   vrf_adv:`show ip bgp neighbors ${N} advertised-routes vrf ${V}`,
+   vrf_rcv:`show ip bgp neighbors ${N} routes vrf ${V}`},
+  n:{bgp_rcv_raw:"Di EOS route pre-policy disimpan secara default (soft-reconfiguration inbound aktif)."}},
+ "fortinet-fortios":{c:{
+   rt_static:"get router info routing-table static",rt_lookup:"get router info routing-table details <8.8.8.8>",
+   rt_summary:"get router info routing-table database",
+   rt_ospf_int:"get router info ospf interface",rt_ospf_db:"get router info ospf database brief",
+   bgp_nei:`get router info bgp neighbors ${N}`,bgp_adv:`get router info bgp neighbors ${N} advertised-routes`,
+   bgp_rcv:`get router info bgp neighbors ${N} routes`,bgp_rcv_raw:`get router info bgp neighbors ${N} received-routes`,
+   bgp_prefix:`get router info bgp network ${P}`,bgp_clear:`execute router clear bgp ip ${N} soft`},
+  n:{rt_summary:"Menampilkan seluruh RIB termasuk route yang tidak aktif.",
+     bgp_rcv_raw:"Butuh set soft-reconfiguration enable di config neighbor."}},
+ "nokia-sros":{c:{
+   rt_static:"show router static-route",rt_lookup:"show router route-table <8.8.8.8>",rt_summary:"show router route-table summary",
+   rt_ospf_int:"show router ospf interface",rt_ospf_db:"show router ospf database",
+   bgp_nei:`show router bgp neighbor ${N}`,bgp_adv:`show router bgp neighbor ${N} advertised-routes`,
+   bgp_rcv:`show router bgp neighbor ${N} received-routes`,bgp_prefix:`show router bgp routes ${P}`,
+   bgp_clear:`clear router bgp neighbor ${N} soft`,
+   vrf_list:"show service service-using vprn",vrf_table:"show router <100> route-table",
+   vrf_bgp:"show router <100> bgp summary",vrf_adv:`show router <100> bgp neighbor ${N} advertised-routes`,
+   vrf_rcv:`show router <100> bgp neighbor ${N} received-routes`,vrf_ping:"ping <10.1.1.1> router <100>"},
+  n:{vrf_list:"Di Nokia, VRF disebut VPRN. Angka 100 adalah service ID VPRN."}}
+};
+ALLOS.forEach(o=>{const x=RT[`${o.vendor.id}-${o.id}`];if(!x)return;Object.assign(o.c,x.c);o.n={...(o.n||{}),...(x.n||{})};});
+
+/* ---- F5 BIG-IP ---- */
+CATS.splice(CATS.findIndex(c=>c.id==="vrf")+1,0,{id:"lb",name:"Load Balancer & HA"});
+[["lb_vs","lb","Status semua virtual server"],["lb_vs_one","lb","Detail satu virtual server"],
+ ["lb_pool","lb","Status pool & member"],["lb_node","lb","Status node"],
+ ["lb_member_off","lb","Disable / enable pool member"],["lb_conn","lb","Koneksi aktif ke satu VIP"],
+ ["lb_persist","lb","Record persistence"],["lb_snat","lb","SNAT translation"],
+ ["lb_irule","lb","Daftar iRule"],["lb_ssl","lb","Sertifikat SSL & masa berlaku"],
+ ["ha_status","lb","Status HA (active / standby)"],["ha_sync","lb","Status config sync"],
+ ["ha_sync_run","lb","Sync config ke device group"],["ts_cap","ts","Capture paket (tcpdump)"]
+].forEach(([id,cat,label])=>TASKS.push({id,cat,label}));
+const F5={id:"f5",name:"F5",os:[{id:"tmos",name:"BIG-IP TMOS",
+ note:"BIG-IP LTM/GTM/APM v13 ke atas. Command biasa dijalankan di tmsh; yang bertanda (bash) dijalankan di shell bash. Routing dinamis lewat imish (ZebOS).",
+ c:{
+  int_all:"show net interface all-properties",int_brief:["show net interface","list net self"],
+  int_one:"show net interface <1.1> all-properties",int_err:"show net interface <1.1> all-properties",
+  rt_table:["show net route","list net route"],rt_static:"list net route",
+  rt_bgp:'imish -e "show ip bgp summary"',rt_ospf:'imish -e "show ip ospf neighbor"',
+  bgp_nei:'imish -e "show ip bgp neighbors <10.0.0.2>"',
+  bgp_adv:'imish -e "show ip bgp neighbors <10.0.0.2> advertised-routes"',
+  bgp_rcv:'imish -e "show ip bgp neighbors <10.0.0.2> routes"',
+  bgp_prefix:'imish -e "show ip bgp <192.168.10.0/24>"',
+  vrf_list:["list net route-domain","show net route-domain"],
+  vrf_table:"rdexec <1> ip route show   (bash)",
+  vrf_bgp:'imish -r <1> -e "show ip bgp summary"',
+  vrf_adv:'imish -r <1> -e "show ip bgp neighbors <10.0.0.2> advertised-routes"',
+  vrf_rcv:'imish -r <1> -e "show ip bgp neighbors <10.0.0.2> routes"',
+  vrf_ping:["ping <10.1.1.1>%<1>   (bash)","rdexec <1> ping <10.1.1.1>   (bash)"],
+  l2_arp:"show net arp",l2_vlan:["list net vlan","show net vlan"],
+  lb_vs:"show ltm virtual",lb_vs_one:["show ltm virtual <vs_web_443>","list ltm virtual <vs_web_443>"],
+  lb_pool:"show ltm pool <pool_web> members",lb_node:"show ltm node",
+  lb_member_off:["modify ltm pool <pool_web> members modify { <10.1.1.10:80> { session user-disabled } }",
+                 "modify ltm pool <pool_web> members modify { <10.1.1.10:80> { session user-enabled } }"],
+  lb_conn:"show sys connection cs-server-addr <10.1.1.100>",
+  lb_persist:"show ltm persistence persist-records",lb_snat:"show ltm snat-translation",
+  lb_irule:"list ltm rule",lb_ssl:["list sys file ssl-cert","run sys crypto check-cert"],
+  ha_status:"show cm failover-status",ha_sync:"show cm sync-status",
+  ha_sync_run:"run cm config-sync to-group <dg_failover>",
+  ts_cap:"tcpdump -nni 0.0:nnn host <10.1.1.10> -w /var/tmp/<capture>.pcap   (bash)",
+  sys_ver:["show sys version","show sys hardware"],sys_cpu:"show sys cpu",sys_mem:"show sys memory",
+  sys_log:["show sys log ltm","tail -f /var/log/ltm   (bash)"],sys_ntp:"ntpq -np   (bash)",
+  cfg_run:"show running-config",cfg_save:"save sys config",
+  ts_ping:"ping <8.8.8.8>   (bash)",ts_trace:"traceroute <8.8.8.8>   (bash)"},
+ n:{rt_bgp:"Butuh Dynamic Routing (BGP) diaktifkan di route domain. Di tmsh bisa langsung ketik imish lalu jalankan command show seperti di Cisco.",
+    vrf_list:"Di F5, VRF disebut route domain. Alamat dalam route domain ditulis dengan akhiran %ID, misalnya 10.1.1.1%1.",
+    int_err:"Lihat kolom Errs, Drops dan Collisions pada output.",
+    lb_member_off:"session user-disabled: tidak menerima koneksi baru tapi koneksi berjalan tetap dilayani. Pakai state user-down untuk memutus total.",
+    ha_sync_run:"Jalankan dari unit yang konfigurasinya paling baru.",
+    ts_cap:"0.0 berarti semua VLAN; :nnn menambahkan info TMM, berguna untuk analisa di Wireshark dengan plugin F5.",
+    cfg_save:"Wajib dijalankan setelah perubahan via tmsh, kalau tidak hilang saat reboot."}}]};
+VENDORS.push(F5);F5.os.forEach(o=>ALLOS.push({...o,vendor:F5}));
+
+const curOS=()=>ALLOS.find(o=>o.vendor.id===st.v&&o.id===st.o);
+const arr=x=>x==null?[]:Array.isArray(x)?x:[x];
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=s=>esc(s).replace(/&lt;(.+?)&gt;/g,'<span class="ph">$1</span>');
+const plain=s=>s.replace(/<(.+?)>/g,"$1").replace(/\s{2,}\((APIC|bash)\)$/,"");
+
+function readHash(){
+  const h=location.hash.slice(1); if(!h) return;
+  const o=ALLOS.find(o=>`${o.vendor.id}-${o.id}`===h);
+  if(o){st.v=o.vendor.id;st.o=o.id;}
+}
+function setHash(){try{history.replaceState(null,"",`#${st.v}-${st.o}`)}catch(e){}}
+
+function renderVendors(){
+  $("#vendors").innerHTML=VENDORS.map(v=>`<button class="chip" data-v="${v.id}" aria-pressed="${v.id===st.v}">${v.name}<small>${v.os.length} OS</small></button>`).join("");
+}
+function renderOS(){
+  const v=VENDORS.find(v=>v.id===st.v);
+  $("#oses").innerHTML=v.os.map(o=>`<button class="chip os-chip" data-o="${o.id}" aria-pressed="${o.id===st.o}">${o.name}</button>`).join("");
+  $("#osnote").textContent=curOS().note;
+}
+function renderCats(){
+  const items=[{id:"all",name:"Semua"},...CATS];
+  $("#cats").innerHTML=items.map(c=>`<button class="tab" data-c="${c.id}" aria-pressed="${c.id===st.cat}">${c.name}</button>`).join("");
+}
+function compareHTML(task){
+  const rows=ALLOS.map(o=>{
+    const cs=arr(o.c[task.id]); const cur=o===curOS();
+    return `<tr><td class="${cur?"cur":""}">${o.vendor.name} ${o.name}</td><td class="cc">${cs.length?cs.map(fmt).join("<br>"):'<span class="na">tidak tersedia</span>'}</td></tr>`;
+  }).join("");
+  return `<div class="compare"><table>${rows}</table></div>`;
+}
+function renderList(){
+  const os=curOS(), q=st.q.trim().toLowerCase();
+  $("#ctx").innerHTML=`<b>${os.vendor.name} ${os.name}</b> · ${Object.keys(os.c).length} command`;
+  const groups=CATS.filter(c=>st.cat==="all"||c.id===st.cat).map(cat=>{
+    const rows=TASKS.filter(t=>t.cat===cat.id&&os.c[t.id]).filter(t=>{
+      if(!q) return true;
+      return (t.label+" "+arr(os.c[t.id]).join(" ")+" "+cat.name).toLowerCase().includes(q);
+    });
+    if(!rows.length) return "";
+    return `<section class="group"><h2>${cat.name}<small>${rows.length}</small></h2><div class="ledger">${rows.map(t=>{
+      const note=os.n&&os.n[t.id];
+      const cmds=arr(os.c[t.id]).map((c,i)=>`<div class="cmd"><code>${fmt(c)}</code><button class="btn copy" data-t="${t.id}" data-i="${i}">Salin</button></div>`).join("");
+      const open=st.open.has(t.id);
+      return `<div class="row"><div class="task">${t.label}</div><div class="cmds">${cmds}${note?`<p class="note">${esc(note)}</p>`:""}</div><div class="cmp-wrap"><button class="btn cmp-btn" data-cmp="${t.id}" aria-expanded="${open}">${open?"Tutup":"Bandingkan"}</button></div>${open?compareHTML(t):""}</div>`;
+    }).join("")}</div></section>`;
+  }).join("");
+  $("#list").innerHTML=groups||`<div class="empty">Tidak ada command yang cocok dengan “${esc(st.q)}” di ${os.vendor.name} ${os.name}.</div>`;
+}
+function renderAll(){renderVendors();renderOS();renderCats();renderList();}
+
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.v){st.v=b.dataset.v;st.o=VENDORS.find(v=>v.id===st.v).os[0].id;st.open.clear();setHash();renderAll();}
+  else if(b.dataset.o){st.o=b.dataset.o;setHash();renderAll();}
+  else if(b.dataset.c){st.cat=b.dataset.c;renderCats();renderList();}
+  else if(b.dataset.cmp){const id=b.dataset.cmp;st.open.has(id)?st.open.delete(id):st.open.add(id);renderList();}
+  else if(b.classList.contains("copy")){
+    const text=plain(arr(curOS().c[b.dataset.t])[+b.dataset.i]);
+    const ok=()=>{b.textContent="Tersalin";b.classList.add("done");setTimeout(()=>{b.textContent="Salin";b.classList.remove("done")},1400)};
+    const fallback=()=>{const code=b.previousElementSibling;const r=document.createRange();r.selectNodeContents(code);const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Teks dipilih";};
+    try{navigator.clipboard.writeText(text).then(ok,fallback)}catch(err){fallback()}
+  }
+});
+$("#q").addEventListener("input",e=>{st.q=e.target.value;renderList();});
+addEventListener("hashchange",()=>{readHash();renderAll();});
+readHash();renderAll();
+</script>
+
+<script>
+if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
